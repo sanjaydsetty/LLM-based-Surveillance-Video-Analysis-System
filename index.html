@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Analysis System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        input[type="file"],
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="file"]:hover,
+        input[type="text"]:focus,
+        textarea:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.processing {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .result-video {
+            margin-top: 20px;
+            width: 100%;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .example-prompts {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        .example-prompts p {
+            margin-bottom: 8px;
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .example-prompts strong {
+            color: #333;
+        }
+
+        .download-link {
+            display: block;
+            margin-top: 15px;
+            padding: 12px;
+            background: #28a745;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .download-link:hover {
+            background: #218838;
+        }
+
+        /* Terminal Styles */
+        .terminal {
+            background: #1e1e1e;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .terminal-header {
+            background: #363636;
+            padding: 10px 15px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .terminal-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .terminal-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-btn.red { background: #ff5f56; }
+        .terminal-btn.yellow { background: #ffbd2e; }
+        .terminal-btn.green { background: #27c93f; }
+
+        .terminal-title {
+            color: white;
+            margin-left: 15px;
+            font-size: 14px;
+        }
+
+        .terminal-body {
+            padding: 15px;
+            color: #00ff00;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+
+        .terminal-body div {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 Video Analysis System</h1>
+        
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="videoFile">Upload Video</label>
+                <input type="file" id="videoFile" name="data" accept="video/*" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="prompt">Analysis Prompt</label>
+                <textarea 
+                    id="prompt" 
+                    name="prompt" 
+                    placeholder="E.g., Detect vehicles coming on the wrong side of the road"
+                    required
+                ></textarea>
+                
+                <div class="example-prompts">
+                    <p><strong>Example prompts:</strong></p>
+                    <p>• Detect vehicles coming on the wrong side of the road</p>
+                    <p>• Find all red cars in the video</p>
+                    <p>• Identify pedestrians crossing illegally</p>
+                    <p>• Detect vehicles running red lights</p>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="apiKey">Gemini API Key</label>
+                <input 
+                    type="text" 
+                    id="apiKey" 
+                    name="apiKey" 
+                    placeholder="Enter your Gemini API key"
+                    value="AIzaSyCbPqoM-Gjl6HN5vkMInSUVgoomxiGCt5g"
+                    required
+                >
+            </div>
+            
+            <button type="submit" id="submitBtn">Analyze Video</button>
+        </form>
+        
+        <div class="loader" id="loader"></div>
+        
+        <div class="status" id="status"></div>
+        
+        <video class="result-video" id="resultVideo" controls></video>
+
+        <!-- Terminal Console -->
+        <div class="terminal">
+            <div class="terminal-header">
+                <div class="terminal-buttons">
+                    <span class="terminal-btn red"></span>
+                    <span class="terminal-btn yellow"></span>
+                    <span class="terminal-btn green"></span>
+                </div>
+                <span class="terminal-title">AI Analysis Console</span>
+            </div>
+            <div class="terminal-body" id="terminalOutput">
+                <div>> System ready. Upload a video to begin analysis...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const loader = document.getElementById('loader');
+        const status = document.getElementById('status');
+        const resultVideo = document.getElementById('resultVideo');
+
+        const WEBHOOK_URL = 'http://localhost:5000/analyze';
+
+        // Terminal functionality
+        function logToTerminal(message, type = 'info') {
+            const terminal = document.getElementById('terminalOutput');
+            const colors = {
+                'info': '#ffffff',
+                'success': '#00ff00', 
+                'error': '#ff4444',
+                'warning': '#ffbd2e',
+                'system': '#66b3ff'
+            };
+            const color = colors[type] || colors['info'];
+            const timestamp = new Date().toLocaleTimeString();
+            terminal.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Reset UI
+            status.style.display = 'none';
+            resultVideo.style.display = 'none';
+            loader.style.display = 'block';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            
+            // Clear terminal
+            document.getElementById('terminalOutput').innerHTML = '';
+            logToTerminal('🚀 Starting video analysis session...', 'system');
+            
+            try {
+                const formData = new FormData(form);
+                const videoFile = document.getElementById('videoFile').files[0];
+                
+                logToTerminal(`📁 Uploading: ${videoFile.name} (${(videoFile.size / (1024*1024)).toFixed(2)} MB)`, 'info');
+                logToTerminal(`💭 Analysis prompt: "${formData.get('prompt')}"`, 'info');
+                logToTerminal('🔄 Connecting to AI analysis engine...', 'system');
+                
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // Display terminal output
+                    result.terminal_output.forEach(line => {
+                        logToTerminal(line, 'success');
+                    });
+                    
+                    logToTerminal('✅ Video analysis completed successfully!', 'success');
+                    
+                    showStatus(`
+                        <strong>🎉 Analysis Complete!</strong><br>
+                        📊 ${result.results.analysis_summary}<br>
+                        ⏱️ Processing time: ${result.results.processing_time}<br>
+                        🎯 Confidence: ${(result.results.confidence_score * 100).toFixed(1)}%
+                    `, 'success');
+                    
+                } else {
+                    throw new Error(result.message);
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                logToTerminal(`❌ Error: ${error.message}`, 'error');
+                showStatus(`❌ Analysis failed: ${error.message}`, 'error');
+            } finally {
+                loader.style.display = 'none';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Analyze Video';
+            }
+        });
+
+        function showStatus(message, type) {
+            status.innerHTML = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
