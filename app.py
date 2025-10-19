@@ -56,10 +56,10 @@ def extract_key_frames(video_path, num_frames=10):
         return [], 60, 30
 
 def analyze_with_gemini(api_key, frames_data, prompt, video_duration):
-    """Analyze video frames using REAL Google Gemini Pro Vision"""
+    """Analyze video frames using Google Gemini Pro Vision"""
     try:
-        if not api_key or api_key == "AIzaSyCbPqoM-Gjl6HN5vkMInSUVgoomxiGCt5g":
-            print("⚠️ Using default API key - make sure it's valid")
+        if not api_key:
+            raise Exception("API key is required for Gemini analysis")
         
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-pro-vision')
@@ -239,7 +239,7 @@ def analyze_video():
         print(f"{'='*50}")
         print(f"📁 File: {video.filename}")
         print(f"💭 Prompt: {prompt}")
-        print(f"🔑 API Key: {api_key[:10]}...")
+        print(f"🔑 API Key: {api_key[:10]}...")  # Only log first 10 chars for security
         print(f"⏰ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"{'='*50}")
         
@@ -343,7 +343,12 @@ def analyze_video():
 def download_clip(filename):
     """Serve the processed video file"""
     try:
-        file_path = os.path.join("processed_clips", filename)
+        # Sanitize filename to prevent path traversal attacks
+        safe_filename = os.path.basename(filename)
+        if ".." in safe_filename or safe_filename.startswith('/'):
+            return jsonify({'status': 'error', 'message': 'Invalid filename'})
+            
+        file_path = os.path.join("processed_clips", safe_filename)
         if os.path.exists(file_path):
             return send_file(file_path, as_attachment=True)
         else:
@@ -351,10 +356,16 @@ def download_clip(filename):
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({'status': 'healthy', 'service': 'Video Analysis System'})
+
 if __name__ == '__main__':
     print("🚀 Automated Surveillance Video Analysis System")
     print("📍 Endpoint: http://localhost:5000/analyze")
     print("🔧 Pipeline: Video → Gemini Pro Vision → FFmpeg")
+    print("🔒 Security: API keys handled securely via user input")
     print("📋 Ready to process surveillance footage!")
     print("-" * 50)
-    app.run(port=5000, debug=True)
+    app.run(port=5000, debug=False)  # debug=False for production safety
