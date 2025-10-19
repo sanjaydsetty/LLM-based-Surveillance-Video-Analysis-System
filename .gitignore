@@ -1,0 +1,22 @@
+# Virtual environment
+venv/
+
+# IDE settings
+.vscode/
+
+# Uploaded and processed videos
+uploads/
+processed_clips/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# Video files
+*.mp4
+*.avi
+*.mov
+*.mkv
